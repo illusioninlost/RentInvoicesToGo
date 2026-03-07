@@ -1,0 +1,224 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+
+const today = () => new Date().toISOString().slice(0, 10);
+const dueDefault = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10);
+};
+
+function newItem() {
+  return { description: '', quantity: 1, unit_price: 0, amount: 0 };
+}
+
+function calcTotals(items, taxRate) {
+  const subtotal = items.reduce((s, it) => s + (it.amount || 0), 0);
+  const tax_amount = subtotal * ((taxRate || 0) / 100);
+  const total = subtotal + tax_amount;
+  return { subtotal, tax_amount, total };
+}
+
+export default function InvoiceForm() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEdit = Boolean(id);
+
+  const [form, setForm] = useState({
+    invoice_number: '',
+    client_name: '',
+    client_email: '',
+    client_address: '',
+    date_created: today(),
+    due_date: dueDefault(),
+    status: 'unpaid',
+    tax_rate: 0,
+    notes: '',
+  });
+  const [items, setItems] = useState([newItem()]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isEdit) {
+      // Auto-generate invoice number
+      fetch('/api/invoices').then(r => r.json()).then(list => {
+        const next = list.length + 1;
+        setForm(f => ({ ...f, invoice_number: `INV-${String(next).padStart(3, '0')}` }));
+      });
+      return;
+    }
+    fetch(`/api/invoices/${id}`).then(r => r.json()).then(inv => {
+      setForm({
+        invoice_number: inv.invoice_number,
+        client_name: inv.client_name,
+        client_email: inv.client_email || '',
+        client_address: inv.client_address || '',
+        date_created: inv.date_created,
+        due_date: inv.due_date,
+        status: inv.status,
+        tax_rate: inv.tax_rate || 0,
+        notes: inv.notes || '',
+      });
+      setItems(inv.items.length ? inv.items : [newItem()]);
+    });
+  }, [id, isEdit]);
+
+  function setField(key, val) {
+    setForm(f => ({ ...f, [key]: val }));
+  }
+
+  function updateItem(index, key, val) {
+    setItems(prev => {
+      const next = prev.map((it, i) => {
+        if (i !== index) return it;
+        const updated = { ...it, [key]: val };
+        if (key === 'quantity' || key === 'unit_price') {
+          updated.amount = parseFloat(updated.quantity || 0) * parseFloat(updated.unit_price || 0);
+        }
+        return updated;
+      });
+      return next;
+    });
+  }
+
+  function addItem() { setItems(prev => [...prev, newItem()]); }
+  function removeItem(i) { setItems(prev => prev.filter((_, idx) => idx !== i)); }
+
+  const { subtotal, tax_amount, total } = calcTotals(items, form.tax_rate);
+
+  function fmt(n) {
+    return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    const payload = { ...form, items, subtotal, tax_amount, total,
+      tax_rate: parseFloat(form.tax_rate) || 0 };
+    const url = isEdit ? `/api/invoices/${id}` : '/api/invoices';
+    const method = isEdit ? 'PUT' : 'POST';
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const saved = await res.json();
+    navigate(`/invoices/${saved.id}`);
+  }
+
+  return (
+    <main className="page">
+      <div className="page-header">
+        <h1>{isEdit ? 'Edit Invoice' : 'New Invoice'}</h1>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <div className="card" style={{ padding: 24 }}>
+          <div className="form-grid" style={{ marginBottom: 16 }}>
+            <div className="form-group">
+              <label>Invoice Number</label>
+              <input required value={form.invoice_number} onChange={e => setField('invoice_number', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Status</label>
+              <select value={form.status} onChange={e => setField('status', e.target.value)}>
+                <option value="unpaid">Unpaid</option>
+                <option value="paid">Paid</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="section-title">Client Details</div>
+          <div className="form-group" style={{ marginBottom: 12 }}>
+            <label>Client Name</label>
+            <input required value={form.client_name} onChange={e => setField('client_name', e.target.value)} />
+          </div>
+          <div className="form-grid" style={{ marginBottom: 12 }}>
+            <div className="form-group">
+              <label>Client Email</label>
+              <input type="email" value={form.client_email} onChange={e => setField('client_email', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Client Address</label>
+              <input value={form.client_address} onChange={e => setField('client_address', e.target.value)} />
+            </div>
+          </div>
+
+          <div className="section-title">Dates</div>
+          <div className="form-grid" style={{ marginBottom: 8 }}>
+            <div className="form-group">
+              <label>Date Created</label>
+              <input type="date" required value={form.date_created} onChange={e => setField('date_created', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Due Date</label>
+              <input type="date" required value={form.due_date} onChange={e => setField('due_date', e.target.value)} />
+            </div>
+          </div>
+
+          <hr className="divider" />
+
+          <div className="section-title">Line Items</div>
+          <table className="line-items" style={{ marginBottom: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ width: '45%' }}>Description</th>
+                <th style={{ width: '10%' }}>Qty</th>
+                <th style={{ width: '15%' }}>Unit Price</th>
+                <th style={{ width: '15%' }}>Amount</th>
+                <th style={{ width: '10%' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr key={i}>
+                  <td><input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Description" /></td>
+                  <td><input type="number" min="0" step="any" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} /></td>
+                  <td><input type="number" min="0" step="0.01" value={it.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} /></td>
+                  <td className="amount-cell">{fmt(it.amount)}</td>
+                  <td><button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => removeItem(i)} disabled={items.length === 1}>✕</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={addItem}>+ Add Line Item</button>
+
+          <hr className="divider" />
+
+          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>Notes</label>
+              <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="Payment terms, thank you note, etc." />
+            </div>
+            <div className="totals-box" style={{ minWidth: 260 }}>
+              <div className="totals-row">
+                <span>Subtotal</span>
+                <span>{fmt(subtotal)}</span>
+              </div>
+              <div className="totals-row" style={{ alignItems: 'center', gap: 8 }}>
+                <span>Tax Rate</span>
+                <input
+                  type="number" min="0" max="100" step="0.1"
+                  value={form.tax_rate}
+                  onChange={e => setField('tax_rate', e.target.value)}
+                  style={{ width: 70, textAlign: 'right' }}
+                />
+                <span>%</span>
+              </div>
+              <div className="totals-row">
+                <span>Tax</span>
+                <span>{fmt(tax_amount)}</span>
+              </div>
+              <div className="totals-row grand">
+                <span>Total</span>
+                <span>{fmt(total)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save Invoice'}</button>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>Cancel</button>
+        </div>
+      </form>
+    </main>
+  );
+}
