@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { apiFetch } from '../apiFetch';
 
 function fmt(n) {
   return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -26,7 +27,7 @@ export default function Reports() {
     if (filters.endDate)   params.set('endDate', filters.endDate);
     if (filters.client)    params.set('client', filters.client);
     if (filters.status)    params.set('status', filters.status);
-    const res = await fetch(`/api/reports?${params.toString()}`);
+    const res = await apiFetch(`/api/reports?${params.toString()}`);
     const data = await res.json();
     setResults(data);
     setLoading(false);

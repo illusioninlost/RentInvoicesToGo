@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { apiFetch } from '../apiFetch';
 
 function fmt(amount) {
   return '$' + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -14,12 +15,12 @@ export default function InvoiceList() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/invoices').then(r => r.json()).then(setInvoices);
+    apiFetch('/api/invoices').then(r => r.json()).then(setInvoices);
   }, []);
 
   async function handleDelete(id) {
     if (!confirm('Delete this invoice?')) return;
-    await fetch(`/api/invoices/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/invoices/${id}`, { method: 'DELETE' });
     setInvoices(prev => prev.filter(inv => inv.id !== id));
   }
 

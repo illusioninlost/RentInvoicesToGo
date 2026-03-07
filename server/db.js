@@ -6,6 +6,7 @@ const db = new DatabaseSync(path.join(__dirname, 'invoices.db'));
 db.exec(`
   CREATE TABLE IF NOT EXISTS invoices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
     invoice_number TEXT NOT NULL,
     client_name TEXT NOT NULL,
     client_email TEXT,
@@ -19,7 +20,38 @@ db.exec(`
     tax_amount REAL NOT NULL DEFAULT 0,
     total REAL NOT NULL DEFAULT 0,
     notes TEXT
-  )
+  );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    phone TEXT,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
 `);
+
+// Add user_id to invoices if it doesn't exist (migration for existing databases)
+try {
+  db.exec('ALTER TABLE invoices ADD COLUMN user_id INTEGER');
+} catch {}
 
 module.exports = db;

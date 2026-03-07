@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { apiFetch } from '../apiFetch';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const dueDefault = () => {
@@ -41,13 +42,13 @@ export default function InvoiceForm() {
   useEffect(() => {
     if (!isEdit) {
       // Auto-generate invoice number
-      fetch('/api/invoices').then(r => r.json()).then(list => {
+      apiFetch('/api/invoices').then(r => r.json()).then(list => {
         const next = list.length + 1;
         setForm(f => ({ ...f, invoice_number: `INV-${String(next).padStart(3, '0')}` }));
       });
       return;
     }
-    fetch(`/api/invoices/${id}`).then(r => r.json()).then(inv => {
+    apiFetch(`/api/invoices/${id}`).then(r => r.json()).then(inv => {
       setForm({
         invoice_number: inv.invoice_number,
         client_name: inv.client_name,
@@ -97,7 +98,7 @@ export default function InvoiceForm() {
       tax_rate: parseFloat(form.tax_rate) || 0 };
     const url = isEdit ? `/api/invoices/${id}` : '/api/invoices';
     const method = isEdit ? 'PUT' : 'POST';
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const saved = await res.json();
     navigate(`/invoices/${saved.id}`);
   }
