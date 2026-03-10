@@ -45,9 +45,9 @@ export default function Signup() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">InvoicesToGo</div>
+        <div className="auth-logo">RentInvoicesToGo</div>
         <h1 className="auth-title">Create account</h1>
-        <p className="auth-subtitle">Start managing your invoices</p>
+        <p className="auth-subtitle">Start managing your rental invoices</p>
 
         {error && <div className="auth-error">{error}</div>}
 

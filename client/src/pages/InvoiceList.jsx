@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../apiFetch';
 import ConfirmModal from '../components/ConfirmModal';
+import ClientModal from '../components/ClientModal';
 
 function fmt(amount) {
   return '$' + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -15,6 +16,7 @@ export default function InvoiceList() {
   const [invoices, setInvoices] = useState([]);
   const [confirmId, setConfirmId] = useState(null);
   const [markPaidId, setMarkPaidId] = useState(null);
+  const [showClientModal, setShowClientModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,8 +50,11 @@ export default function InvoiceList() {
     <>
     <main className="page">
       <div className="page-header">
-        <h1>Invoices</h1>
-        <Link to="/invoices/new" className="btn btn-primary">+ New Invoice</Link>
+        <h1>Rental Invoices</h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={() => setShowClientModal(true)}>+ Add Client</button>
+          <Link to="/invoices/new" className="btn btn-primary">+ New Invoice</Link>
+        </div>
       </div>
 
       <div className="summary-cards">
@@ -79,7 +84,7 @@ export default function InvoiceList() {
         <div className="table-wrap">
           {invoices.length === 0 ? (
             <div className="empty-state">
-              <p>No invoices yet.</p>
+              <p>No rental invoices yet.</p>
               <Link to="/invoices/new" className="btn btn-primary mt-16" style={{ marginTop: 12 }}>Create your first invoice</Link>
             </div>
           ) : (
@@ -87,9 +92,9 @@ export default function InvoiceList() {
               <thead>
                 <tr>
                   <th>Invoice #</th>
-                  <th>Client</th>
-                  <th>Date Created</th>
-                  <th>Due Date</th>
+                  <th>Tenant</th>
+                  <th>Invoice Date</th>
+                  <th>Payment Due</th>
                   <th>Status</th>
                   <th className="text-right">Total</th>
                   <th>Actions</th>
@@ -137,6 +142,12 @@ export default function InvoiceList() {
         confirmClassName="btn btn-primary"
         onConfirm={handleMarkPaid}
         onCancel={() => setMarkPaidId(null)}
+      />
+    )}
+    {showClientModal && (
+      <ClientModal
+        onSave={() => setShowClientModal(false)}
+        onCancel={() => setShowClientModal(false)}
       />
     )}
     </>

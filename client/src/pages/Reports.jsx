@@ -39,11 +39,12 @@ export default function Reports() {
   }
 
   function exportCSV() {
-    const headers = ['Invoice #', 'Client', 'Email', 'Date Created', 'Due Date', 'Status', 'Subtotal', 'Tax Rate', 'Tax Amount', 'Total', 'Notes'];
+    const headers = ['Invoice #', 'Tenant', 'Email', 'Property', 'Invoice Date', 'Payment Due', 'Status', 'Subtotal', 'Tax Rate', 'Tax Amount', 'Total', 'Notes'];
     const rows = results.map(inv => [
       inv.invoice_number,
       inv.client_name,
       inv.client_email || '',
+      inv.property_address || '',
       inv.date_created,
       inv.due_date,
       inv.status,
@@ -82,8 +83,8 @@ export default function Reports() {
             <input type="date" value={filters.endDate} onChange={e => setFilter('endDate', e.target.value)} />
           </div>
           <div className="form-group">
-            <label>Client Name</label>
-            <input type="text" value={filters.client} onChange={e => setFilter('client', e.target.value)} placeholder="Search client…" />
+            <label>Tenant Name</label>
+            <input type="text" value={filters.client} onChange={e => setFilter('client', e.target.value)} placeholder="Search tenant…" />
           </div>
           <div className="form-group">
             <label>Status</label>
@@ -124,9 +125,9 @@ export default function Reports() {
                   <thead>
                     <tr>
                       <th>Invoice #</th>
-                      <th>Client</th>
-                      <th>Date Created</th>
-                      <th>Due Date</th>
+                      <th>Tenant</th>
+                      <th>Invoice Date</th>
+                      <th>Payment Due</th>
                       <th>Status</th>
                       <th className="text-right">Total</th>
                     </tr>

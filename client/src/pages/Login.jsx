@@ -37,7 +37,7 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">InvoicesToGo</div>
+        <div className="auth-logo">RentInvoicesToGo</div>
         <h1 className="auth-title">Sign in</h1>
         <p className="auth-subtitle">Welcome back</p>
 

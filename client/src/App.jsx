@@ -19,7 +19,7 @@ function Navbar() {
 
   return (
     <nav className="navbar">
-      <NavLink to="/" className="navbar-brand">InvoicesToGo</NavLink>
+      <NavLink to="/" className="navbar-brand">RentInvoicesToGo</NavLink>
       <div className="navbar-links">
         <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Invoices</NavLink>
         <NavLink to="/reports" className={({ isActive }) => isActive ? 'active' : ''}>Reports</NavLink>

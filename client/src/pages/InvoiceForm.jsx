@@ -10,7 +10,7 @@ const dueDefault = () => {
 };
 
 function newItem() {
-  return { description: '', quantity: 1, unit_price: 0, amount: 0 };
+  return { description: 'Monthly Rent', quantity: 1, unit_price: 0, amount: 0 };
 }
 
 function calcTotals(items, taxRate) {
@@ -37,18 +37,22 @@ export default function InvoiceForm() {
     notes: '',
   });
   const [items, setItems] = useState([newItem()]);
+  const [clients, setClients] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    apiFetch('/api/clients').then(r => r.json()).then(setClients);
+  }, []);
+
+  useEffect(() => {
     if (!isEdit) {
-      // Auto-generate invoice number
       apiFetch('/api/invoices').then(r => r.json()).then(list => {
         const max = list.reduce((m, inv) => {
           const n = parseInt(inv.invoice_number.replace(/\D/g, ''), 10);
           return isNaN(n) ? m : Math.max(m, n);
         }, 0);
-        setForm(f => ({ ...f, invoice_number: `INV-${String(max + 1).padStart(3, '0')}` }));
+        setForm(f => ({ ...f, invoice_number: `RENT-${String(max + 1).padStart(3, '0')}` }));
       });
       return;
     }
@@ -72,6 +76,12 @@ export default function InvoiceForm() {
     setForm(f => ({ ...f, [key]: val }));
   }
 
+  function selectClient(clientId) {
+    const c = clients.find(c => c.id === parseInt(clientId, 10));
+    if (!c) return;
+    setForm(f => ({ ...f, client_name: c.name, client_email: c.email || '', client_address: c.address || '' }));
+  }
+
   function updateItem(index, key, val) {
     setItems(prev => {
       const next = prev.map((it, i) => {
@@ -86,7 +96,7 @@ export default function InvoiceForm() {
     });
   }
 
-  function addItem() { setItems(prev => [...prev, newItem()]); }
+  function addItem() { setItems(prev => [...prev, { description: '', quantity: 1, unit_price: 0, amount: 0 }]); }
   function removeItem(i) { setItems(prev => prev.filter((_, idx) => idx !== i)); }
 
   const { subtotal, tax_amount, total } = calcTotals(items, form.tax_rate);
@@ -116,7 +126,7 @@ export default function InvoiceForm() {
   return (
     <main className="page">
       <div className="page-header">
-        <h1>{isEdit ? 'Edit Invoice' : 'New Invoice'}</h1>
+        <h1>{isEdit ? 'Edit Rental Invoice' : 'New Rental Invoice'}</h1>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -136,37 +146,37 @@ export default function InvoiceForm() {
             </div>
           </div>
 
-          <div className="section-title">Client Details</div>
+          <div className="section-title">Tenant Details</div>
           <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Client Name</label>
-            <input required value={form.client_name} onChange={e => setField('client_name', e.target.value)} />
+            <label>Select Tenant</label>
+            <select
+              onChange={e => selectClient(e.target.value)}
+              defaultValue=""
+            >
+              <option value="" disabled>— Choose a client —</option>
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {clients.length === 0 && (
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>No clients yet — use "+ Add Client" on the invoices page.</span>
+            )}
           </div>
-          <div className="form-grid" style={{ marginBottom: 12 }}>
-            <div className="form-group">
-              <label>Client Email</label>
-              <input type="email" value={form.client_email} onChange={e => setField('client_email', e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Client Address</label>
-              <input value={form.client_address} onChange={e => setField('client_address', e.target.value)} />
-            </div>
-          </div>
-
           <div className="section-title">Dates</div>
           <div className="form-grid" style={{ marginBottom: 8 }}>
             <div className="form-group">
-              <label>Date Created</label>
+              <label>Invoice Date</label>
               <input type="date" required value={form.date_created} onChange={e => setField('date_created', e.target.value)} />
             </div>
             <div className="form-group">
-              <label>Due Date</label>
+              <label>Payment Due</label>
               <input type="date" required value={form.due_date} onChange={e => setField('due_date', e.target.value)} />
             </div>
           </div>
 
           <hr className="divider" />
 
-          <div className="section-title">Line Items</div>
+          <div className="section-title">Charges</div>
           <table className="line-items" style={{ marginBottom: 12 }}>
             <thead>
               <tr>
@@ -180,7 +190,7 @@ export default function InvoiceForm() {
             <tbody>
               {items.map((it, i) => (
                 <tr key={i}>
-                  <td><input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="Description" /></td>
+                  <td><input value={it.description} onChange={e => updateItem(i, 'description', e.target.value)} placeholder="e.g. Monthly Rent, Late Fee…" /></td>
                   <td><input type="number" min="0" step="any" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} /></td>
                   <td><input type="number" min="0" step="0.01" value={it.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} /></td>
                   <td className="amount-cell">{fmt(it.amount)}</td>
@@ -189,14 +199,14 @@ export default function InvoiceForm() {
               ))}
             </tbody>
           </table>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={addItem}>+ Add Line Item</button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={addItem}>+ Add Charge</button>
 
           <hr className="divider" />
 
           <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
             <div className="form-group" style={{ flex: 1 }}>
               <label>Notes</label>
-              <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="Payment terms, thank you note, etc." />
+              <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="Payment instructions, late fee policy, etc." />
             </div>
             <div className="totals-box" style={{ minWidth: 260 }}>
               <div className="totals-row">
@@ -218,7 +228,7 @@ export default function InvoiceForm() {
                 <span>{fmt(tax_amount)}</span>
               </div>
               <div className="totals-row grand">
-                <span>Total</span>
+                <span>Total Due</span>
                 <span>{fmt(total)}</span>
               </div>
             </div>

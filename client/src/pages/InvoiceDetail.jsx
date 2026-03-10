@@ -16,10 +16,25 @@ export default function InvoiceDetail() {
   const navigate = useNavigate();
   const [inv, setInv] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [emailStatus, setEmailStatus] = useState(null); // null | 'sending' | 'success' | 'error'
+  const [emailError, setEmailError] = useState(null);
 
   useEffect(() => {
     apiFetch(`/api/invoices/${id}`).then(r => r.json()).then(setInv);
   }, [id]);
+
+  async function handleEmail() {
+    setEmailStatus('sending');
+    setEmailError(null);
+    const res = await apiFetch(`/api/invoices/${id}/email`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      setEmailStatus('error');
+      setEmailError(data.error || 'Failed to send email.');
+    } else {
+      setEmailStatus('success');
+    }
+  }
 
   async function handleDelete() {
     await apiFetch(`/api/invoices/${id}`, { method: 'DELETE' });
@@ -35,30 +50,59 @@ export default function InvoiceDetail() {
         <Link to="/" className="btn btn-secondary btn-sm">← Back</Link>
         <Link to={`/invoices/${id}/edit`} className="btn btn-secondary btn-sm">Edit</Link>
         <button className="btn btn-danger btn-sm" onClick={() => setShowConfirm(true)}>Delete</button>
+        <button className="btn btn-secondary btn-sm" onClick={handleEmail} disabled={emailStatus === 'sending'}>
+          {emailStatus === 'sending' ? 'Sending…' : 'Email to Tenant'}
+        </button>
         <button className="btn btn-primary btn-sm" onClick={() => window.print()}>Print / PDF</button>
       </div>
+
+      {emailStatus === 'success' && (
+        <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#14532d' }}>
+          <span>Email sent to <strong>{inv.client_email}</strong> successfully.</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => setEmailStatus(null)} style={{ color: '#14532d', padding: '2px 8px' }}>✕</button>
+        </div>
+      )}
+      {emailStatus === 'error' && (
+        <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#7f1d1d' }}>
+          <span>{emailError}</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => setEmailStatus(null)} style={{ color: '#7f1d1d', padding: '2px 8px' }}>✕</button>
+        </div>
+      )}
 
       <div className="invoice-detail">
         <div className="invoice-header">
           <div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)', letterSpacing: -0.5 }}>InvoicesToGo</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+                <path d="M9 21V12h6v9"/>
+              </svg>
+              <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)', letterSpacing: -0.5 }}>RentInvoicesToGo</span>
+            </div>
             <div style={{ fontSize: 22, fontWeight: 700, marginTop: 8 }}>{inv.invoice_number}</div>
           </div>
           <div className="invoice-meta">
             <StatusBadge status={inv.status} />
             <div style={{ marginTop: 10, fontSize: 13, color: 'var(--text-muted)' }}>
-              <div>Date: <strong>{inv.date_created}</strong></div>
-              <div>Due: <strong>{inv.due_date}</strong></div>
+              <div>Invoice Date: <strong>{inv.date_created}</strong></div>
+              <div>Payment Due: <strong>{inv.due_date}</strong></div>
             </div>
           </div>
         </div>
+
+        {inv.property_address && (
+          <div style={{ marginBottom: 24 }}>
+            <div className="invoice-section-label">Rental Property</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{inv.property_address}</div>
+          </div>
+        )}
 
         <div className="invoice-from-to">
           <div>
             <div className="invoice-section-label">Bill To</div>
             <div style={{ fontWeight: 600 }}>{inv.client_name}</div>
-            {inv.client_email && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{inv.client_email}</div>}
-            {inv.client_address && <div style={{ color: 'var(--text-muted)', fontSize: 13, whiteSpace: 'pre-line' }}>{inv.client_address}</div>}
+            {inv.client_address && <div style={{ color: 'var(--text-muted)', fontSize: 13, whiteSpace: 'pre-line', marginTop: 2 }}>{inv.client_address}</div>}
+            {inv.client_email && <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>{inv.client_email}</div>}
           </div>
         </div>
 
@@ -90,12 +134,14 @@ export default function InvoiceDetail() {
             <span style={{ color: 'var(--text-muted)' }}>Subtotal</span>
             <span>{fmt(inv.subtotal)}</span>
           </div>
-          <div className="invoice-total-row">
-            <span style={{ color: 'var(--text-muted)' }}>Tax ({inv.tax_rate}%)</span>
-            <span>{fmt(inv.tax_amount)}</span>
-          </div>
+          {inv.tax_rate > 0 && (
+            <div className="invoice-total-row">
+              <span style={{ color: 'var(--text-muted)' }}>Tax ({inv.tax_rate}%)</span>
+              <span>{fmt(inv.tax_amount)}</span>
+            </div>
+          )}
           <div className="invoice-total-row grand">
-            <span>Total</span>
+            <span>Total Due</span>
             <span>{fmt(inv.total)}</span>
           </div>
         </div>

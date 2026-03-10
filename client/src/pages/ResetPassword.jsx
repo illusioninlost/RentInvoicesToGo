@@ -60,7 +60,7 @@ export default function ResetPassword() {
     return (
       <div className="auth-page">
         <div className="auth-card">
-          <div className="auth-logo">InvoicesToGo</div>
+          <div className="auth-logo">RentInvoicesToGo</div>
           <div className="auth-success-icon">&#10003;</div>
           <h1 className="auth-title">Password reset</h1>
           <p className="auth-subtitle">Your password has been updated successfully.</p>
@@ -75,7 +75,7 @@ export default function ResetPassword() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">InvoicesToGo</div>
+        <div className="auth-logo">RentInvoicesToGo</div>
         <h1 className="auth-title">Reset password</h1>
 
         {step === 'request' && (

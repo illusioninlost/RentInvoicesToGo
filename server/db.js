@@ -39,6 +39,16 @@ db.exec(`
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
 
+  CREATE TABLE IF NOT EXISTS clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    address TEXT,
+    phone TEXT,
+    email TEXT,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+
   CREATE TABLE IF NOT EXISTS password_resets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -58,5 +68,8 @@ try {
 try {
   db.exec('CREATE UNIQUE INDEX idx_invoices_user_invoice_number ON invoices(user_id, invoice_number)');
 } catch {}
+
+// Rental-specific columns
+try { db.exec("ALTER TABLE invoices ADD COLUMN property_address TEXT NOT NULL DEFAULT ''"); } catch {}
 
 module.exports = db;
