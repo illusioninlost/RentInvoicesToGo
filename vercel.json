@@ -3,7 +3,7 @@
   "outputDirectory": "client/dist",
   "installCommand": "npm install && npm --prefix client install",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://rentinvoicestogo-api.onrender.com/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://rentinvoicestogo.onrender.com/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
