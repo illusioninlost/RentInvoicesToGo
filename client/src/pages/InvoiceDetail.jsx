@@ -102,7 +102,6 @@ export default function InvoiceDetail() {
             <div className="invoice-section-label">Bill To</div>
             <div style={{ fontWeight: 600 }}>{inv.client_name}</div>
             {inv.client_address && <div style={{ color: 'var(--text-muted)', fontSize: 13, whiteSpace: 'pre-line', marginTop: 2 }}>{inv.client_address}</div>}
-            {inv.client_email && <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>{inv.client_email}</div>}
           </div>
         </div>
 
